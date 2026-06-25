@@ -1,0 +1,21 @@
+# Build output
+Debug/
+Release/
+
+# STM32CubeIDE workspace metadata
+.metadata/
+.settings/
+*.launch
+
+# Eclipse/CubeIDE temporäre Dateien
+.cproject.bak
+*.bak
+
+# Object files und Linker-Output
+*.o
+*.d
+*.elf
+*.bin
+*.hex
+*.map
+*.lst
