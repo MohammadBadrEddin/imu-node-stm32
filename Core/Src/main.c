@@ -21,6 +21,7 @@
 #include <stdio.h>
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "lsm6ds33.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "timers.h"
@@ -151,11 +152,33 @@ int main(void)
 }
 void imu_task(void * pvParameters)
 {
+    printf("Task started\r\n");
+    HAL_UART_Transmit(&huart2, (uint8_t*)"UART OK\r\n", 9, HAL_MAX_DELAY);
 
- for( ;; )
- {
+	LSM6DS33_Data imu;
+	char buf[128];
+	uint16_t len;
 
- }
+	if(LSM6DS33_Init(&hi2c1) != LSM6DS33_OK){
+
+		printf("Error: IMU init failed\r\n");
+		vTaskDelete(NULL);
+	}
+
+	printf("IMU init OK\r\n");
+
+	for( ;; )
+	 {
+		 if(LSM6DS33_ReadData(&hi2c1, &imu) == LSM6DS33_OK){
+			 len = snprintf(buf, sizeof(buf),
+			     "AX:%.4f AY:%.4f AZ:%.4f GX:%.4f GY:%.4f GZ:%.4f\r\n",
+			     imu.ax, imu.ay, imu.az,
+			     imu.gx, imu.gy, imu.gz);
+			 HAL_UART_Transmit(&huart2, (uint8_t*)buf,len, HAL_MAX_DELAY);
+		 }
+
+	        vTaskDelay(pdMS_TO_TICKS(20));  /* 50 Hz */
+	 }
 }
 /**
   * @brief System Clock Configuration
@@ -287,7 +310,16 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
+//  GPIO_InitTypeDef GPIO_InitStruct = {0};
 
+  //temp test with internal Pull-ups on PB8 (SCL) and PB9 (SDA)
+  // external Pull-ups 4.7 k not tested
+//  GPIO_InitStruct.Pin   = GPIO_PIN_8 | GPIO_PIN_9;
+//  GPIO_InitStruct.Mode  = GPIO_MODE_AF_OD;
+//  GPIO_InitStruct.Pull  = GPIO_PULLUP;
+//  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+//  GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
+//  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
   /* USER CODE END MX_GPIO_Init_2 */
 }
 
