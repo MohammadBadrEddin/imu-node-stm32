@@ -50,5 +50,5 @@ AX:%.4f AY:%.4f AZ:%.4f GX:%.4f GY:%.4f GZ:%.4f
 
 - [x] LSM6DS33 I²C driver
 - [x] UART output at 50 Hz
-- [ ] External pull-up resistors (currently using internal ~40 kΩ)
+- [x] External pull-up resistors (currently using internal ~40 kΩ)
 - [ ] Gyro bias calibration
