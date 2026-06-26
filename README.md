@@ -36,8 +36,9 @@ Reads LSM6DS33 IMU via I²C and transmits data over UART.
 
 ## Output Format
 
-AX:%.4f AY:%.4f AZ:%.4f GX:%.4f GY:%.4f GZ:%.4f
-Units: Accel in m/s², Gyro in rad/s.
+AX:%.4f AY:%.4f AZ:%.4f GX:%.4f GY:%.4f GZ:%.4f 
+
+> Units: Accel in m/s², Gyro in rad/s.
 
 ## Build
 
