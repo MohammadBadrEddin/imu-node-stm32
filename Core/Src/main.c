@@ -51,6 +51,14 @@ I2C_HandleTypeDef hi2c1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+QueueHandle_t imuQueueHandle;
+
+typedef struct {
+	uint32_t	timestamp_ms;
+	float		ax, ay, az;
+	float		gx, gy, gz;
+} imu_packet_t;
+
 int __io_putchar(int ch){
 
 	HAL_UART_Transmit(&huart2, (uint8_t *) &ch, 1, HAL_MAX_DELAY);
@@ -65,6 +73,7 @@ static void MX_I2C1_Init(void);
 static void MX_USART2_UART_Init(void);
 
 void imu_task(void * pvParameters);
+void wifi_task(void *pvParameters);
 
 /* USER CODE BEGIN PFP */
 
@@ -123,12 +132,12 @@ int main(void)
   /* USER CODE END RTOS_TIMERS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
+  imuQueueHandle = xQueueCreate(1, sizeof(imu_packet_t));
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  xTaskCreate(imu_task, "vIMUTask", 512, NULL, 1, NULL );
-
+  xTaskCreate(imu_task, "vIMUTask", 512, NULL, 2, NULL );
+  xTaskCreate(wifi_task, "vWifiTask", 1024, NULL, 1, NULL); // more stack size for WiFi driver
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -152,33 +161,37 @@ int main(void)
 }
 void imu_task(void * pvParameters)
 {
-    printf("Task started\r\n");
-    HAL_UART_Transmit(&huart2, (uint8_t*)"UART OK\r\n", 9, HAL_MAX_DELAY);
-
 	LSM6DS33_Data imu;
-	char buf[128];
-	uint16_t len;
+    imu_packet_t pkt;
 
 	if(LSM6DS33_Init(&hi2c1) != LSM6DS33_OK){
-
 		printf("Error: IMU init failed\r\n");
 		vTaskDelete(NULL);
 	}
 
-	printf("IMU init OK\r\n");
-
 	for( ;; )
 	 {
 		 if(LSM6DS33_ReadData(&hi2c1, &imu) == LSM6DS33_OK){
-			 len = snprintf(buf, sizeof(buf),
-			     "AX:%.4f AY:%.4f AZ:%.4f GX:%.4f GY:%.4f GZ:%.4f\r\n",
-			     imu.ax, imu.ay, imu.az,
-			     imu.gx, imu.gy, imu.gz);
-			 HAL_UART_Transmit(&huart2, (uint8_t*)buf,len, HAL_MAX_DELAY);
+			 pkt.timestamp_ms	= HAL_GetTick();
+			 pkt.ax = imu.ax; pkt.ay = imu.ay; pkt.az = imu.az;
+			 pkt.gx = imu.gx; pkt.gy = imu.gy; pkt.gz = imu.gz;
+
+			 xQueueOverwrite(imuQueueHandle, &pkt);
 		 }
 
 	        vTaskDelay(pdMS_TO_TICKS(20));  /* 50 Hz */
 	 }
+}
+void wifi_task(void *pvParameters)
+{
+    imu_packet_t pkt;
+    // TODO WiFi connect logic Wifi init, wifi connect, socket ..
+
+    for (;;) {
+        if (xQueueReceive(imuQueueHandle, &pkt, portMAX_DELAY) == pdPASS) {
+//            WIFI_SendData(socket_id, (uint8_t*)&pkt, sizeof(pkt), &sent_len, timeout); // TODO choose the right data format
+        }
+    }
 }
 /**
   * @brief System Clock Configuration
